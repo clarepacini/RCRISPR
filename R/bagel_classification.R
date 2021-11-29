@@ -74,6 +74,66 @@ add_bagel_classifications <-
     # Return processed data
     return(processed_data)
   }
+###############################################################################
+#* --                                                                     -- *#
+#* --                       avg_bagel_BFs()                               -- *#
+#* --                                                                     -- *#
+###############################################################################
+#' Average bagel Bayesian Factors
+#'
+#' @description
+#' Average the bayesian factors from Bagel by number of guides targeting gene for calc ScaledBFs.
+#'
+#' @param data_sgRNA data frame with Bayesian factors at sgRNA level
+#' @param data_gene data frame with Bayesian factors at gene level
+#' @param gene_column_sgRNA the index of column containing gene symbols in data_sgRNA
+#' @param gene_column_gene the index of column containing gene symbols in data_gene
+#' @param ess vector of essential gene symbols.
+#' @param noness vector of non-essential gene symbols.
+#'
+#' @import plyr
+#' @return data frame
+#' @export avg_bagel_BFs
+avg_bagel_BFs <-
+  function (data_sgRNA = NULL,
+            data_gene = NULL,
+            gene_column_sgRNA = 2,
+            gene_column_gene =1,
+            gene_column_BF=2) {
+    # Check input data is not null
+    if (is.null(data_sgRNA))
+      stop("Cannot average BFs, data_sgRNA is null.")
+    if (is.null(data_gene))
+        stop("Cannot average BFs, data_gene is null.")
+    if (is.null(gene_column_sgRNA))
+      stop("Cannot add BAGEL classification, gene_column_sgRNA is null.")
+    if (is.null(gene_column_gene))
+      stop("Cannot add BAGEL classification, gene_column_gene is null.")
+    if (is.null(gene_column_BF))
+      stop("Cannot add BAGEL classification, gene_column_BF is null.")
+    # Try to make each column an integer if it isn't already
+    assign('gene_column_gene', convert_variable_to_integer(get('gene_column_gene')))
+    assign('gene_column_sgRNA', convert_variable_to_integer(get('gene_column_sgRNA')))
+    assign('gene_column_BF', convert_variable_to_integer(get('gene_column_BF')))
+    # Check indices are within data frame
+    check_dataframe(data_sgRNA, indices = gene_column_sgRNA)
+    check_dataframe(data_gene, indices = gene_column_gene)
+    check_dataframe(data_gene, indices = gene_column_BF)
+    # Get scaling factors for bfs
+    gene_colname_gene <- colnames(data_gene)[gene_column_gene]
+    gene_colname_sgRNA <- colnames(data_sgRNA)[gene_column_sgRNA]
+    gene_colname_BF <- colnames(data_sgRNA)[gene_column_BF]
+    guide_count<-data_sgRNA%>%count(.,gene_colname_sgRNA)
+    avg_factor<-guide_count$freq
+    names(avg_factor)<-guide_count[,gene_colname_sgRNA]
+    avgBFs=data.frame(data_gene[,gene_colname_gene], avgBF=data_gene[,gene_colname_BF]/avg_factor[data_gene[,gene_colname_gene]],stringsAsFactors = FALSE)
+    colnames(avgBFs)[1]<-gene_colname_gene
+    processed_data <- data_gene%>%left_join(avgBFs,by=gene_colname_gene)
+    # Check data frame
+    check_dataframe(processed_data)
+    # Return processed data
+    return(processed_data)
+  }
 
 ###############################################################################
 #* --                                                                     -- *#
